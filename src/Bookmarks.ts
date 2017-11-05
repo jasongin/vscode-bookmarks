@@ -2,7 +2,7 @@
 
 import * as vscode from "vscode";
 import fs = require("fs");
-import {Bookmark, JUMP_DIRECTION, JUMP_FORWARD, NO_MORE_BOOKMARKS} from "./Bookmark";
+import { Bookmark, JUMP_DIRECTION, JUMP_FORWARD, NO_MORE_BOOKMARKS } from "./Bookmark";
 import { Utils } from "./Utils";
 
 interface BookmarkAdded {
@@ -40,216 +40,216 @@ export class Bookmarks {
     private onDidUpdateBookmarkEmitter = new vscode.EventEmitter<BookmarkUpdated>();
     get onDidUpdateBookmark(): vscode.Event<BookmarkUpdated> { return this.onDidUpdateBookmarkEmitter.event; }
 
-        public bookmarks: Bookmark[];
-        public activeBookmark: Bookmark = undefined;
+    public bookmarks: Bookmark[];
+    public activeBookmark: Bookmark = undefined;
 
-        constructor(jsonObject) {
-            this.bookmarks = [];
+    constructor(jsonObject) {
+        this.bookmarks = [];
+    }
+
+    public dispose() {
+        this.zip();
+    }
+
+    public loadFrom(jsonObject, relativePath?: boolean) {
+        if (jsonObject === "") {
+            return;
         }
 
-        public dispose() {
-            this.zip();
-        }
-        
-        public loadFrom(jsonObject, relativePath?: boolean) {
-            if (jsonObject === "") {
-                return;
-            }
-            
-            let jsonBookmarks = jsonObject.bookmarks;
-            for (let idx = 0; idx < jsonBookmarks.length; idx++) {
-              let jsonBookmark = jsonBookmarks[idx];
-              
-              // each bookmark (line)
-              this.add(jsonBookmark.fsPath);
-              // for (let index = 0; index < jsonBookmark.bookmarks.length; index++) {
-              for (let element of jsonBookmark.bookmarks) {
-                  this.bookmarks[idx].bookmarks.push(element); // jsonBookmark.bookmarks[index]);
-              }
-            }
+        let jsonBookmarks = jsonObject.bookmarks;
+        for (let idx = 0; idx < jsonBookmarks.length; idx++) {
+            let jsonBookmark = jsonBookmarks[ idx ];
 
-            if (relativePath) {
-                for (let element of this.bookmarks) {
-                    element.fsPath = element.fsPath.replace("$ROOTPATH$", vscode.workspace.rootPath);
-                }
+            // each bookmark (line)
+            this.add(jsonBookmark.fsPath);
+            // for (let index = 0; index < jsonBookmark.bookmarks.length; index++) {
+            for (let element of jsonBookmark.bookmarks) {
+                this.bookmarks[ idx ].bookmarks.push(element); // jsonBookmark.bookmarks[index]);
             }
         }
 
-        public fromUri(uri: string) {
-            uri = Utils.normalize(uri);
-            // for (let index = 0; index < this.bookmarks.length; index++) {
+        if (relativePath) {
             for (let element of this.bookmarks) {
-                // let element = this.bookmarks[index];
+                element.fsPath = element.fsPath.replace("$ROOTPATH$", vscode.workspace.rootPath);
+            }
+        }
+    }
 
-                if (element.fsPath === uri) {
-                    return element;
-                }
+    public fromUri(uri: string) {
+        uri = Utils.normalize(uri);
+        // for (let index = 0; index < this.bookmarks.length; index++) {
+        for (let element of this.bookmarks) {
+            // let element = this.bookmarks[index];
+
+            if (element.fsPath === uri) {
+                return element;
+            }
+        }
+    }
+
+    public add(uri: string) {
+        // console.log(`Adding bookmark/file: ${uri}`);
+        uri = Utils.normalize(uri);
+
+        let existing: Bookmark = this.fromUri(uri);
+        if (typeof existing === "undefined") {
+            let bookmark = new Bookmark(uri);
+            this.bookmarks.push(bookmark);
+        }
+    }
+
+    public nextDocumentWithBookmarks(active: Bookmark, direction: JUMP_DIRECTION = JUMP_FORWARD) {
+
+        let currentBookmark: Bookmark = active;
+        let currentBookmarkId: number;
+        for (let index = 0; index < this.bookmarks.length; index++) {
+            let element = this.bookmarks[ index ];
+            if (element === active) {
+                currentBookmarkId = index;
             }
         }
 
-        public add(uri: string) {
-            // console.log(`Adding bookmark/file: ${uri}`);
-            uri = Utils.normalize(uri);
-            
-            let existing: Bookmark = this.fromUri(uri);
-            if (typeof existing === "undefined") {
-                let bookmark = new Bookmark(uri);
-                this.bookmarks.push(bookmark);
+        return new Promise((resolve, reject) => {
+
+            if (direction === JUMP_FORWARD) {
+                currentBookmarkId++;
+                if (currentBookmarkId === this.bookmarks.length) {
+                    currentBookmarkId = 0;
+                }
+            } else {
+                currentBookmarkId--;
+                if (currentBookmarkId === -1) {
+                    currentBookmarkId = this.bookmarks.length - 1;
+                }
+            }
+
+            currentBookmark = this.bookmarks[ currentBookmarkId ];
+
+            if (currentBookmark.bookmarks.length === 0) {
+                if (currentBookmark === this.activeBookmark) {
+                    resolve(NO_MORE_BOOKMARKS);
+                    return;
+                } else {
+                    this.nextDocumentWithBookmarks(currentBookmark, direction)
+                        .then((nextDocument) => {
+                            resolve(nextDocument);
+                            return;
+                        })
+                        .catch((error) => {
+                            reject(error);
+                            return;
+                        });
+                }
+            } else {
+                if (fs.existsSync(currentBookmark.fsPath)) {
+                    resolve(currentBookmark.fsPath);
+                    return;
+                } else {
+                    this.nextDocumentWithBookmarks(currentBookmark, direction)
+                        .then((nextDocument) => {
+                            resolve(nextDocument);
+                            return;
+                        })
+                        .catch((error) => {
+                            reject(error);
+                            return;
+                        });
+                }
+            }
+
+        });
+
+    }
+
+    public nextBookmark(active: Bookmark, currentLine: number) {
+
+        let currentBookmark: Bookmark = active;
+        let currentBookmarkId: number;
+        for (let index = 0; index < this.bookmarks.length; index++) {
+            let element = this.bookmarks[ index ];
+            if (element === active) {
+                currentBookmarkId = index;
             }
         }
 
-        public nextDocumentWithBookmarks(active: Bookmark, direction: JUMP_DIRECTION = JUMP_FORWARD) {
+        return new Promise((resolve, reject) => {
 
-            let currentBookmark: Bookmark = active;
-            let currentBookmarkId: number;
-            for (let index = 0; index < this.bookmarks.length; index++) {
-                let element = this.bookmarks[index];
-                if (element === active) {
-                    currentBookmarkId = index;
-                }
-            }
-
-            return new Promise((resolve, reject) => {
-
-                if (direction === JUMP_FORWARD) {
-                  currentBookmarkId++;
-                  if (currentBookmarkId === this.bookmarks.length) {
-                      currentBookmarkId = 0;
-                  }
-                } else {
-                  currentBookmarkId--;
-                  if (currentBookmarkId === -1) {
-                      currentBookmarkId = this.bookmarks.length - 1;
-                  }
-                }
-                
-                currentBookmark = this.bookmarks[currentBookmarkId];
-                
-                if (currentBookmark.bookmarks.length === 0) {                    
-                    if (currentBookmark === this.activeBookmark) {
-                        resolve(NO_MORE_BOOKMARKS);
-                        return;
-                    } else {
-                        this.nextDocumentWithBookmarks(currentBookmark, direction)
-                            .then((nextDocument) => {
-                                resolve(nextDocument);
-                                return;
-                            })
-                            .catch((error) => {
-                                reject(error);
-                                return;
-                            });
-                    }                   
-                } else {
-                    if (fs.existsSync(currentBookmark.fsPath)) {
-                        resolve(currentBookmark.fsPath);
-                        return;
-                    } else {
-                        this.nextDocumentWithBookmarks(currentBookmark, direction)
-                            .then((nextDocument) => {
-                                resolve(nextDocument);
-                                return;
-                            })
-                            .catch((error) => {
-                                reject(error);
-                                return;
-                            });
+            currentBookmark.nextBookmark(currentLine)
+                .then((newLine) => {
+                    resolve(newLine);
+                    return;
+                })
+                .catch((error) => {
+                    // next document                  
+                    currentBookmarkId++;
+                    if (currentBookmarkId === this.bookmarks.length) {
+                        currentBookmarkId = 0;
                     }
-                }
+                    currentBookmark = this.bookmarks[ currentBookmarkId ];
 
-            });
+                });
 
+        });
+    }
+
+    public zip(relativePath?: boolean): Bookmarks {
+        function isNotEmpty(book: Bookmark): boolean {
+            return book.bookmarks.length > 0;
         }
 
-        public nextBookmark(active: Bookmark, currentLine: number) {
+        let newBookmarks: Bookmarks = new Bookmarks("");
+        //  newBookmarks.bookmarks = this.bookmarks.filter(isNotEmpty);
+        newBookmarks.bookmarks = JSON.parse(JSON.stringify(this.bookmarks)).filter(isNotEmpty);
 
-            let currentBookmark: Bookmark = active;
-            let currentBookmarkId: number;
-            for (let index = 0; index < this.bookmarks.length; index++) {
-                let element = this.bookmarks[index];
-                if (element === active) {
-                    currentBookmarkId = index;
-                }
-            }
-
-            return new Promise((resolve, reject) => {
-
-                currentBookmark.nextBookmark(currentLine)
-                    .then((newLine) => {
-                        resolve(newLine);
-                        return;
-                    })
-                    .catch((error) => {
-                        // next document                  
-                        currentBookmarkId++;
-                        if (currentBookmarkId === this.bookmarks.length) {
-                            currentBookmarkId = 0;
-                        }
-                        currentBookmark = this.bookmarks[currentBookmarkId];
-
-                    });
-
-            });
-        }
-        
-        public zip(relativePath?: boolean): Bookmarks {
-            function isNotEmpty(book: Bookmark): boolean {
-                return book.bookmarks.length > 0;
-            }
-            
-            let newBookmarks: Bookmarks = new Bookmarks("");
-            //  newBookmarks.bookmarks = this.bookmarks.filter(isNotEmpty);
-            newBookmarks.bookmarks = JSON.parse(JSON.stringify(this.bookmarks)).filter(isNotEmpty);
-
-            if (!relativePath) {
-                return newBookmarks;
-            }
-
-            for (let element of newBookmarks.bookmarks) {
-                element.fsPath = element.fsPath.replace(vscode.workspace.rootPath, "$ROOTPATH$");
-            }
+        if (!relativePath) {
             return newBookmarks;
         }
 
-        public clear(book?: Bookmark): void {
-            let b: Bookmark = book ? book : this.activeBookmark;
-            b.clear();
-            this.onDidClearBookmarkEmitter.fire(b);
+        for (let element of newBookmarks.bookmarks) {
+            element.fsPath = element.fsPath.replace(vscode.workspace.rootPath, "$ROOTPATH$");
         }
-
-        public clearAll(): void {
-            for (let element of this.bookmarks) {
-                element.clear();
-            }     
-            this.onDidClearAllBookmarksEmitter.fire();       
-        }
-
-        public addBookmark(aline: number): void {
-            this.activeBookmark.bookmarks.push(aline);
-            this.onDidAddBookmarkEmitter.fire({
-                bookmark: this.activeBookmark, 
-                line: aline + 1,
-                preview: vscode.window.activeTextEditor.document.lineAt(aline).text
-            });
-        }
-
-        public removeBookmark(index, aline: number, book?: Bookmark): void {
-            let b: Bookmark = book ? book : this.activeBookmark;
-            b.bookmarks.splice(index, 1);
-            this.onDidRemoveBookmarkEmitter.fire({
-                bookmark: b, 
-                line: aline + 1
-            });
-        }
-
-        public updateBookmark(index, oldLine, newLine: number, book?: Bookmark): void {
-            let b: Bookmark = book ? book : this.activeBookmark;
-            b.bookmarks[index] = newLine;
-            this.onDidUpdateBookmarkEmitter.fire({
-                bookmark: b,
-                index: index,
-                line: newLine + 1,
-                preview: vscode.window.activeTextEditor.document.lineAt(newLine).text
-            })
-        }
+        return newBookmarks;
     }
+
+    public clear(book?: Bookmark): void {
+        let b: Bookmark = book ? book : this.activeBookmark;
+        b.clear();
+        this.onDidClearBookmarkEmitter.fire(b);
+    }
+
+    public clearAll(): void {
+        for (let element of this.bookmarks) {
+            element.clear();
+        }
+        this.onDidClearAllBookmarksEmitter.fire();
+    }
+
+    public addBookmark(aline: number): void {
+        this.activeBookmark.bookmarks.push(aline);
+        this.onDidAddBookmarkEmitter.fire({
+            bookmark: this.activeBookmark,
+            line: aline + 1,
+            preview: vscode.window.activeTextEditor.document.lineAt(aline).text
+        });
+    }
+
+    public removeBookmark(index, aline: number, book?: Bookmark): void {
+        let b: Bookmark = book ? book : this.activeBookmark;
+        b.bookmarks.splice(index, 1);
+        this.onDidRemoveBookmarkEmitter.fire({
+            bookmark: b,
+            line: aline + 1
+        });
+    }
+
+    public updateBookmark(index, oldLine, newLine: number, book?: Bookmark): void {
+        let b: Bookmark = book ? book : this.activeBookmark;
+        b.bookmarks[ index ] = newLine;
+        this.onDidUpdateBookmarkEmitter.fire({
+            bookmark: b,
+            index: index,
+            line: newLine + 1,
+            preview: vscode.window.activeTextEditor.document.lineAt(newLine).text
+        })
+    }
+}
