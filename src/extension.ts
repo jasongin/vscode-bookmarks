@@ -8,6 +8,7 @@ import { JUMP_BACKWARD, JUMP_DIRECTION, JUMP_FORWARD, NO_BOOKMARKS, NO_MORE_BOOK
 import {Bookmarks} from "./Bookmarks";
 
 import { BookmarkProvider } from "./BookmarkProvider";
+import { Utils } from "./Utils";
 
 // this method is called when vs code is activated
 export function activate(context: vscode.ExtensionContext) {
@@ -448,7 +449,7 @@ export function activate(context: vscode.ExtensionContext) {
                       }
                     
                       // same document?
-                      let activeDocument = Bookmarks.normalize(vscode.window.activeTextEditor.document.uri.fsPath);
+                      let activeDocument = Utils.normalize(vscode.window.activeTextEditor.document.uri.fsPath);
                       if (nextDocument.toString() === activeDocument) {
                         revealLine(bookmarks.activeBookmark.bookmarks[0]);
                       } else { 
@@ -494,7 +495,7 @@ export function activate(context: vscode.ExtensionContext) {
                       }
                     
                       // same document?
-                      let activeDocument = Bookmarks.normalize(vscode.window.activeTextEditor.document.uri.fsPath);
+                      let activeDocument = Utils.normalize(vscode.window.activeTextEditor.document.uri.fsPath);
                       if (nextDocument.toString() === activeDocument) {
                         // revealLine(activeBookmark.bookmarks[0]);
                         revealLine(bookmarks.activeBookmark.bookmarks[bookmarks.activeBookmark.bookmarks.length - 1]);

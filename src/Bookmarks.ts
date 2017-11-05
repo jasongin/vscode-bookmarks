@@ -3,6 +3,7 @@
 import * as vscode from "vscode";
 import fs = require("fs");
 import {Bookmark, JUMP_DIRECTION, JUMP_FORWARD, NO_MORE_BOOKMARKS} from "./Bookmark";
+import { Utils } from "./Utils";
 
 interface BookmarkAdded {
     bookmark: Bookmark;
@@ -39,12 +40,6 @@ export class Bookmarks {
     private onDidUpdateBookmarkEmitter = new vscode.EventEmitter<BookmarkUpdated>();
     get onDidUpdateBookmark(): vscode.Event<BookmarkUpdated> { return this.onDidUpdateBookmarkEmitter.event; }
 
-    public static normalize(uri: string): string {
-            // a simple workaround for what appears to be a vscode.Uri bug
-            // (inconsistent fsPath values for the same document, ex. ///foo/x.cpp and /foo/x.cpp)
-            return uri.replace("///", "/");
-        }
-        
         public bookmarks: Bookmark[];
         public activeBookmark: Bookmark = undefined;
 
@@ -81,7 +76,7 @@ export class Bookmarks {
         }
 
         public fromUri(uri: string) {
-            uri = Bookmarks.normalize(uri);
+            uri = Utils.normalize(uri);
             // for (let index = 0; index < this.bookmarks.length; index++) {
             for (let element of this.bookmarks) {
                 // let element = this.bookmarks[index];
@@ -94,7 +89,7 @@ export class Bookmarks {
 
         public add(uri: string) {
             // console.log(`Adding bookmark/file: ${uri}`);
-            uri = Bookmarks.normalize(uri);
+            uri = Utils.normalize(uri);
             
             let existing: Bookmark = this.fromUri(uri);
             if (typeof existing === "undefined") {
