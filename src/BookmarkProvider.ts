@@ -157,8 +157,10 @@ export class BookmarkProvider implements vscode.TreeDataProvider<BookmarkNode> {
 
     // no bookmark
     let totalBookmarkCount: number = 0;
-    for (let elem of this.bookmarks.bookmarks) {
-      totalBookmarkCount = totalBookmarkCount + elem.bookmarks.length;
+    // for (let elem of this.bookmarks.bookmarks) {
+    for (let index = 0; index < this.bookmarks.bookmarks.length; index++) {
+      const element = this.bookmarks.bookmarks[index];
+      totalBookmarkCount = totalBookmarkCount + element.bookmarks.length;
     }
 
     if (totalBookmarkCount === 0) {
@@ -192,7 +194,9 @@ export class BookmarkProvider implements vscode.TreeDataProvider<BookmarkNode> {
         // ROOT
         this.tree = [];
         let promisses = [];
-        for (let bookmark of this.bookmarks.bookmarks) {
+        //for (let bookmark of this.bookmarks.bookmarks) {
+        for (let index = 0; index < this.bookmarks.bookmarks.length; index++) {
+          const bookmark = this.bookmarks.bookmarks[index];
           let pp = bookmark.listBookmarks();
           promisses.push(pp);
         }
@@ -202,7 +206,9 @@ export class BookmarkProvider implements vscode.TreeDataProvider<BookmarkNode> {
 
             // raw list
             let lll: BookmarkNode[] = [];
-            for (let bb of this.bookmarks.bookmarks) {
+            //for (let bb of this.bookmarks.bookmarks) {
+            for (let index = 0; index < this.bookmarks.bookmarks.length; index++) {
+              const bb = this.bookmarks.bookmarks[index];
 
               // this bookmark has bookmarks?
               // if (this.bookmarks.bookmarks.length > 0) {

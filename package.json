@@ -9,7 +9,7 @@
         "theme": "dark"
     },
     "engines": {
-        "vscode": "^1.17.0"
+        "vscode": "^1.18.0"
     },
     "categories": [
         "Other"
@@ -20,7 +20,8 @@
         "jump",
         "mark",
         "selection",
-        "navigation"
+        "navigation",
+        "multi-root ready"
     ],
     "icon": "images/icon.png",
     "license": "SEE LICENSE IN LICENSE.md",
@@ -177,22 +178,26 @@
                 "bookmarks.saveBookmarksInProject": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Allow bookmarks to be saved (and restored) locally in the opened Project/Folder instead of VS Code"
+                    "description": "Allow bookmarks to be saved (and restored) locally in the opened Project/Folder instead of VS Code",
+                    "scope": "window"
                 },
                 "bookmarks.gutterIconPath": {
                     "type": "string",
                     "default": "",
-                    "description": "Path to another image to be presented as Bookmark"
+                    "description": "Path to another image to be presented as Bookmark",
+                    "scope": "window"
                 },
                 "bookmarks.navigateThroughAllFiles": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Allow navigation look for bookmarks in all files in the project, instead of only the current"
+                    "description": "Allow navigation look for bookmarks in all files in the project, instead of only the current",
+                    "scope": "window"
 				},
 				"bookmarks.treeview.visible": {
 					"type": "boolean",
 					"default": true,
-					"description": "Should display the Treeview?"
+                    "description": "Should display the Treeview?",
+                    "scope": "window"
 				}
             }
         },

@@ -1,4 +1,9 @@
 {
+	"onDidClearBookmarkEmitter": {},
+	"onDidClearAllBookmarksEmitter": {},
+	"onDidAddBookmarkEmitter": {},
+	"onDidRemoveBookmarkEmitter": {},
+	"onDidUpdateBookmarkEmitter": {},
 	"bookmarks": [
 		{
 			"fsPath": "$ROOTPATH$\\Bookmarks.ts",
@@ -14,6 +19,27 @@
 				701,
 				795,
 				800
+			]
+		},
+		{
+			"fsPath": "$ROOTPATH$\\src\\extension.ts",
+			"bookmarks": [
+				68,
+				758,
+				767
+			]
+		},
+		{
+			"fsPath": "$ROOTPATH$\\src\\Bookmark.ts",
+			"bookmarks": [
+				102,
+				120
+			]
+		},
+		{
+			"fsPath": "$ROOTPATH$\\src\\Bookmarks.ts",
+			"bookmarks": [
+				53
 			]
 		}
 	]

@@ -8,16 +8,17 @@ import { JUMP_BACKWARD, JUMP_DIRECTION, JUMP_FORWARD, NO_BOOKMARKS, NO_MORE_BOOK
 import {Bookmarks} from "./Bookmarks";
 
 import { BookmarkProvider } from "./BookmarkProvider";
+import { Utils } from "./Utils";
 
 // this method is called when vs code is activated
 export function activate(context: vscode.ExtensionContext) {
   
-    let bookmarks: Bookmarks;
     let activeEditorCountLine: number;
     let timeout: NodeJS.Timer;
+    let bookmarks: Bookmarks = new Bookmarks(context);
 
     // load pre-saved bookmarks
-    let didLoadBookmarks: boolean = loadWorkspaceState();
+    let didLoadBookmarks: boolean = bookmarks.loadWorkspaceState();
 
     // tree-view optional
     let canShowTreeView: boolean = vscode.workspace.getConfiguration("bookmarks").get("treeview.visible", true);
@@ -97,7 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
             updateDecorations();
 
             if (updatedBookmark) {
-                saveWorkspaceState();
+                bookmarks.saveWorkspaceState(context);
             }
         }
     }, null, context.subscriptions);
@@ -175,7 +176,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("bookmarks.clearFromFile", node => {
         // vscode.window.showInformationMessage("bookmarks.clearFromFile" + node.toString());
         bookmarks.clear(node.bookmark);
-        saveWorkspaceState();
+        bookmarks.saveWorkspaceState(context);
         updateDecorations();
     });
 
@@ -184,7 +185,7 @@ export function activate(context: vscode.ExtensionContext) {
         let book: Bookmark = bookmarks.fromUri(node.command.arguments[0]);
         let index = book.bookmarks.indexOf(node.command.arguments[1] - 1);
         bookmarks.removeBookmark(index, node.command.arguments[1] - 1, book);
-        saveWorkspaceState();
+        bookmarks.saveWorkspaceState(context);
         updateDecorations();
     });
 
@@ -198,7 +199,7 @@ export function activate(context: vscode.ExtensionContext) {
 //        bookmarks.activeBookmark.clear();
         bookmarks.clear();
 
-        saveWorkspaceState();
+        bookmarks.saveWorkspaceState(context);
         updateDecorations();
     });
 	
@@ -211,7 +212,7 @@ export function activate(context: vscode.ExtensionContext) {
         // }
         bookmarks.clearAll();
       
-        saveWorkspaceState();
+        bookmarks.saveWorkspaceState(context);
         updateDecorations();
     });
     
@@ -421,7 +422,7 @@ export function activate(context: vscode.ExtensionContext) {
             return 0;
         });
 
-        saveWorkspaceState();
+        bookmarks.saveWorkspaceState(context);
         updateDecorations();
     });
 
@@ -448,7 +449,7 @@ export function activate(context: vscode.ExtensionContext) {
                       }
                     
                       // same document?
-                      let activeDocument = Bookmarks.normalize(vscode.window.activeTextEditor.document.uri.fsPath);
+                      let activeDocument = Utils.normalize(vscode.window.activeTextEditor.document.uri.fsPath);
                       if (nextDocument.toString() === activeDocument) {
                         revealLine(bookmarks.activeBookmark.bookmarks[0]);
                       } else { 
@@ -494,7 +495,7 @@ export function activate(context: vscode.ExtensionContext) {
                       }
                     
                       // same document?
-                      let activeDocument = Bookmarks.normalize(vscode.window.activeTextEditor.document.uri.fsPath);
+                      let activeDocument = Utils.normalize(vscode.window.activeTextEditor.document.uri.fsPath);
                       if (nextDocument.toString() === activeDocument) {
                         // revealLine(activeBookmark.bookmarks[0]);
                         revealLine(bookmarks.activeBookmark.bookmarks[bookmarks.activeBookmark.bookmarks.length - 1]);
@@ -573,9 +574,10 @@ export function activate(context: vscode.ExtensionContext) {
         // no bookmark
         let totalBookmarkCount: number = 0;
         // for (let index = 0; index < bookmarks.bookmarks.length; index++) {
-        for (let element of bookmarks.bookmarks) {
-            // totalBookmarkCount = totalBookmarkCount +  bookmarks.bookmarks[index].bookmarks.length;
-            totalBookmarkCount = totalBookmarkCount + element.bookmarks.length; 
+        //for (let element of bookmarks.bookmarks) {
+        for (let index = 0; index < bookmarks.bookmarks.length; index++) {
+            totalBookmarkCount = totalBookmarkCount +  bookmarks.bookmarks[index].bookmarks.length;
+            // totalBookmarkCount = totalBookmarkCount + element.bookmarks.length; 
         }
         if (totalBookmarkCount === 0) {
             vscode.window.showInformationMessage("No Bookmarks found");
@@ -588,9 +590,9 @@ export function activate(context: vscode.ExtensionContext) {
         let promisses = [];
         let currentLine: number = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.selection.active.line + 1 : -1;
         
-        // for (let index = 0; index < bookmarks.bookmarks.length; index++) {
-        for (let bookmark of bookmarks.bookmarks) {
-            // let bookmark = bookmarks.bookmarks[index];
+        for (let index = 0; index < bookmarks.bookmarks.length; index++) {
+        // for (let bookmark of bookmarks.bookmarks) {
+            let bookmark = bookmarks.bookmarks[index];
             
             let pp = bookmark.listBookmarks();
             promisses.push(pp);
@@ -746,45 +748,45 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.activeTextEditor.revealRange(newSe, reviewType);
     }
 
-    function loadWorkspaceState(): boolean {
-        let saveBookmarksInProject: boolean = vscode.workspace.getConfiguration("bookmarks").get("saveBookmarksInProject", false);
+    // function loadWorkspaceState(): boolean {
+    //     let saveBookmarksInProject: boolean = vscode.workspace.getConfiguration("bookmarks").get("saveBookmarksInProject", false);
 
-        bookmarks = new Bookmarks("");
+    //     bookmarks = new Bookmarks();
 
-        if (vscode.workspace.rootPath && saveBookmarksInProject) {
-            let bookmarksFileInProject: string = path.join(vscode.workspace.rootPath, ".vscode", "bookmarks.json");
-            if (!fs.existsSync(bookmarksFileInProject)) {
-                return false;
-            }
-            try {
-                bookmarks.loadFrom(JSON.parse(fs.readFileSync(bookmarksFileInProject).toString()), true);
-                return true;
-            } catch (error) {
-                vscode.window.showErrorMessage("Error loading Bookmarks: " + error.toString());
-                return false;
-            }
-        } else {
-            let savedBookmarks = context.workspaceState.get("bookmarks", "");
-            if (savedBookmarks !== "") {
-                bookmarks.loadFrom(JSON.parse(savedBookmarks));
-            }
-            return savedBookmarks !== "";
-        }        
-    }
+    //     if (vscode.workspace.rootPath && saveBookmarksInProject) {
+    //         let bookmarksFileInProject: string = path.join(vscode.workspace.rootPath, ".vscode", "bookmarks.json");
+    //         if (!fs.existsSync(bookmarksFileInProject)) {
+    //             return false;
+    //         }
+    //         try {
+    //             bookmarks.loadFrom(JSON.parse(fs.readFileSync(bookmarksFileInProject).toString()), true);
+    //             return true;
+    //         } catch (error) {
+    //             vscode.window.showErrorMessage("Error loading Bookmarks: " + error.toString());
+    //             return false;
+    //         }
+    //     } else {
+    //         let savedBookmarks = context.workspaceState.get("bookmarks", "");
+    //         if (savedBookmarks !== "") {
+    //             bookmarks.loadFrom(JSON.parse(savedBookmarks));
+    //         }
+    //         return savedBookmarks !== "";
+    //     }        
+    // }
 
-    function saveWorkspaceState(): void {
-        let saveBookmarksInProject: boolean = vscode.workspace.getConfiguration("bookmarks").get("saveBookmarksInProject", false);
+    // function saveWorkspaceState(): void {
+    //     let saveBookmarksInProject: boolean = vscode.workspace.getConfiguration("bookmarks").get("saveBookmarksInProject", false);
 
-        if (vscode.workspace.rootPath && saveBookmarksInProject) {
-            let bookmarksFileInProject: string = path.join(vscode.workspace.rootPath, ".vscode", "bookmarks.json");
-            if (!fs.existsSync(path.dirname(bookmarksFileInProject))) {
-                fs.mkdirSync(path.dirname(bookmarksFileInProject)); 
-            }
-            fs.writeFileSync(bookmarksFileInProject, JSON.stringify(bookmarks.zip(true), null, "\t"));   
-        } else {
-            context.workspaceState.update("bookmarks", JSON.stringify(bookmarks.zip()));
-        }
-    }
+    //     if (vscode.workspace.rootPath && saveBookmarksInProject) {
+    //         let bookmarksFileInProject: string = path.join(vscode.workspace.rootPath, ".vscode", "bookmarks.json");
+    //         if (!fs.existsSync(path.dirname(bookmarksFileInProject))) {
+    //             fs.mkdirSync(path.dirname(bookmarksFileInProject)); 
+    //         }
+    //         fs.writeFileSync(bookmarksFileInProject, JSON.stringify(bookmarks.zip(true), null, "\t"));   
+    //     } else {
+    //         context.workspaceState.update("bookmarks", JSON.stringify(bookmarks.zip()));
+    //     }
+    // }
 
     function HadOnlyOneValidContentChange(event): boolean {
         
