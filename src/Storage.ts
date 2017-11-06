@@ -88,11 +88,9 @@ export namespace Storage {
      */
     export class BookmarksStorage {
 
-        private workspaceList: WorkspaceList;
-        // private filename: string;
+        public workspaceList: WorkspaceList;
 
-        constructor(filename: string) {
-            // this.filename = filename;
+        constructor() {
             this.workspaceList = <WorkspaceList>[];
         }
 

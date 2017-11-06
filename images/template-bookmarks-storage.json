@@ -1,0 +1,114 @@
+[
+    // storage for a multi-root scenario. it does not matter 
+    // if there is only one folder defined in workspace
+    {
+        // first workspace (workspaceFolders[0])
+        "path": "vscode-project-manager",
+        "files": [
+            {
+                "path": "$ROOTPATH$\\abstractLocator.ts",
+                "bookmarks": [
+                    144, 123, 111
+                ]
+            },
+            {
+                // a file
+                "path": "somefile.ts",
+                "bookmarks": [
+                    // a bookmark
+                    {
+                        "line": 144,
+                        "column": 10,
+                        "label": "my method"
+                    },
+                    // a bookmark
+                    {
+                        "line": 111,
+                        "column": 0,
+                        "label": "another position"
+                    }
+                ]
+            }    
+        ]
+    },
+    {
+        // second workspace (workspaceFolders[1])
+        "path": "vscode-jenkins-status",
+        "files": [
+            {
+                // a file
+                "path": "src\\JenkinsIndicator.ts",
+                "bookmarks": [
+                    {
+                        // a bookmark
+                        "line": 144,
+                        "column": 10,
+                        "label": "my method"
+                    }
+                ]
+            }    
+        ]
+    },
+
+
+
+    // storage for a single-root scenario
+    {
+        // no workspace, but still, has a `path` which simply 
+        // says `.` (dot). Using `.` is simpler because it won't
+        // worry if the folder is renamed
+        "path": ".",
+        "files": [
+            {
+                // a file
+                "path": "src\\JenkinsIndicator.ts",
+                "bookmarks": [
+                    {
+                        // a bookmark
+                        "line": 144,
+                        "column": 10,
+                        "label": "my method"
+                    }
+                ]
+            }    
+        ]
+    },
+
+
+
+    // storage for a no-workspace (unsaved) scenario
+    {
+        // no workspace, but still, has a `path` which simply 
+        // says `$UNTITLED$`. Using `$UNTITLED$` is simpler 
+        // because it uses the same _name convetion_ that VS Code
+        // uses for _newly created files_ (Untitled-1)
+        "path": "$UNTITLED$",
+        "files": [
+            {
+                // a file
+                "path": "src\\JenkinsIndicator.ts",
+                "bookmarks": [
+                    {
+                        // a bookmark
+                        "line": 144,
+                        "column": 10,
+                        "label": "my method"
+                    }
+                ]
+            }    
+        ]
+    }
+]
+
+
+
+{
+	"bookmarks": [
+		{
+			"fsPath": "$ROOTPATH$\\abstractLocator.ts",
+			"bookmarks": [
+				144
+			]
+		}
+	]
+}

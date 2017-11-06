@@ -10,6 +10,8 @@ import {Bookmarks} from "./Bookmarks";
 import { BookmarkProvider } from "./BookmarkProvider";
 import { Utils } from "./Utils";
 
+// import { Storage } from "./Storage";
+
 // this method is called when vs code is activated
 export function activate(context: vscode.ExtensionContext) {
   
@@ -749,8 +751,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     function loadWorkspaceState(): boolean {
         let saveBookmarksInProject: boolean = vscode.workspace.getConfiguration("bookmarks").get("saveBookmarksInProject", false);
-
-        bookmarks = new Bookmarks("");
+        // let bs: Storage.BookmarksStorage = new Storage.BookmarksStorage();
+        
+        bookmarks = new Bookmarks();
 
         if (vscode.workspace.rootPath && saveBookmarksInProject) {
             let bookmarksFileInProject: string = path.join(vscode.workspace.rootPath, ".vscode", "bookmarks.json");
@@ -759,6 +762,11 @@ export function activate(context: vscode.ExtensionContext) {
             }
             try {
                 bookmarks.loadFrom(JSON.parse(fs.readFileSync(bookmarksFileInProject).toString()), true);
+
+                //bs.load(JSON.parse(fs.readFileSync("C:\\Users\\alefr\\Documents\\GitHub\\vscode-language-rtf\\teste-bookmarks.json").toString()), true, vscode.workspace.rootPath);
+                // bs.load(JSON.parse(fs.readFileSync(bookmarksFileInProject).toString()), true, vscode.workspace.rootPath);
+                //bs.save(vscode.workspace.rootPath);
+
                 return true;
             } catch (error) {
                 vscode.window.showErrorMessage("Error loading Bookmarks: " + error.toString());
@@ -768,9 +776,13 @@ export function activate(context: vscode.ExtensionContext) {
             let savedBookmarks = context.workspaceState.get("bookmarks", "");
             if (savedBookmarks !== "") {
                 bookmarks.loadFrom(JSON.parse(savedBookmarks));
+
+                //bs.load(JSON.parse(fs.readFileSync("C:\\Users\\alefr\\Documents\\GitHub\\vscode-language-rtf\\teste-bookmarks.json").toString()), true, vscode.workspace.rootPath);
+                // bs.load(JSON.parse(savedBookmarks), true, vscode.workspace.rootPath);
+                //bs.save(vscode.workspace.rootPath);
             }
             return savedBookmarks !== "";
-        }        
+        }       
     }
 
     function saveWorkspaceState(): void {

@@ -3,6 +3,7 @@
 import * as vscode from "vscode";
 import fs = require("fs");
 import { Bookmark, JUMP_DIRECTION, JUMP_FORWARD, NO_MORE_BOOKMARKS } from "./Bookmark";
+import { Storage } from "./Storage";
 import { Utils } from "./Utils";
 
 interface BookmarkAdded {
@@ -40,10 +41,12 @@ export class Bookmarks {
     private onDidUpdateBookmarkEmitter = new vscode.EventEmitter<BookmarkUpdated>();
     get onDidUpdateBookmark(): vscode.Event<BookmarkUpdated> { return this.onDidUpdateBookmarkEmitter.event; }
 
+    private storage: Storage.BookmarksStorage;
     public bookmarks: Bookmark[];
     public activeBookmark: Bookmark = undefined;
 
-    constructor(jsonObject) {
+    constructor() {
+        this.storage = new Storage.BookmarksStorage()
         this.bookmarks = [];
     }
 
@@ -51,9 +54,48 @@ export class Bookmarks {
         this.zip();
     }
 
+    // /**
+    //  * Loads the Bookmarks as saved in `workspaceState`
+    //  * All bookmarks, from all files, are stored in a simple `json` structure. 
+    //  * Works on _older model_ AND _new model_. It means that it can have ONE or MULTIPLE folders
+    //  * 
+    //  * @param jsonObject bookmarks.json as saved in vscode.workspaceState
+    //  */
+    // public loadFromWorkspaceState(jsonObject: any) {
+    //     if (jsonObject === "") {
+    //         return;
+    //     }
+
+    //     this.storage.load(jsonObject, false, vscode.workspace.rootPath);
+    // }
+
+    // /**
+    //  * Loads the Bookmarks as saved in `workspaceState`
+    //  * All bookmarks, from all files, are stored in a simple `json` structure. 
+    //  * Works on _older model_ AND _new model_. It means that it can have ONE or MULTIPLE folders
+    //  * 
+    //  * @param jsonObject bookmarks.json as saved in vscode.workspaceState
+    //  */
+    // public loadFromUntitledWorkspaceState(jsonObject: any) {
+    //     if (jsonObject === "") {
+    //         return;
+    //     }
+
+    //     this.storage.load(jsonObject, false, vscode.workspace.rootPath);
+    // }
+
     public loadFrom(jsonObject, relativePath?: boolean) {
         if (jsonObject === "") {
             return;
+        }
+
+        this.storage.load(jsonObject, relativePath, vscode.workspace.rootPath);
+
+        for (const wf of this.storage.workspaceList) {
+            for (const file of wf.files) {
+                file.path
+                file.bookmarks
+            }
         }
 
         let jsonBookmarks = jsonObject.bookmarks;
@@ -197,7 +239,7 @@ export class Bookmarks {
             return book.bookmarks.length > 0;
         }
 
-        let newBookmarks: Bookmarks = new Bookmarks("");
+        let newBookmarks: Bookmarks = new Bookmarks();
         //  newBookmarks.bookmarks = this.bookmarks.filter(isNotEmpty);
         newBookmarks.bookmarks = JSON.parse(JSON.stringify(this.bookmarks)).filter(isNotEmpty);
 
