@@ -83,7 +83,7 @@ export class Bookmarks {
     public fromUri(uri: string) {
         uri = Bookmarks.normalize(uri);
         for (let element of this.bookmarks) {
-            if (element.fsPath === uri) {
+            if (element.fsPath.endsWith(uri)) {
                 return element;
             }
         }

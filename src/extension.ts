@@ -93,6 +93,11 @@ export async function activate(context: vscode.ExtensionContext) {
     }, null, context.subscriptions);
 
     vscode.workspace.onDidChangeTextDocument(event => {
+        if (event.document.isUntitled) {
+            // Ignore output window changes.
+            return;
+        }
+
         if (activeEditor && event.document === activeEditor.document) {
 //            triggerUpdateDecorations();
             let updatedBookmark: boolean = true;
@@ -800,6 +805,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
         bookmarks = new Bookmarks("");
 
+        if (state) {
+            bookmarks.loadFrom(state);
+            return true;
+        }
+
         if (sharedBookmarksProxy) {
             if (sharedBookmarksProxy.isServiceAvailable) {
                 bookmarks.loadFrom(await sharedBookmarksProxy.request('getBookmarks', []));
@@ -838,7 +848,11 @@ export async function activate(context: vscode.ExtensionContext) {
         if (sharedBookmarksProxy) {
             return; // Don't save state locally as a guest.
         } else if (sharedBookmarksService) {
-            sharedBookmarksService.notify('bookmarksChanged', bookmarks.zip(true));
+            sharedBookmarksService.notify(
+                'bookmarksChanged',
+                {
+                    bookmarks: bookmarks.zip(true).bookmarks,
+                });
         }
 
         let saveBookmarksInProject: boolean = canSaveBookmarksInProject();
@@ -1101,11 +1115,17 @@ export async function activate(context: vscode.ExtensionContext) {
             sharedBookmarksProxy = await liveshare.getSharedService('bookmarks');
             sharedBookmarksProxy.handleNotification('bookmarksChanged', (args: any) => {
                 loadWorkspaceState(args);
+
+                let activeEditor = vscode.window.activeTextEditor;
+                bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri.fsPath);
                 triggerUpdateDecorations();
             });
             sharedBookmarksProxy.onDidChangeIsServiceAvailable((isAvailable) => {
                 if (isAvailable) {
                     loadWorkspaceState();
+
+                    let activeEditor = vscode.window.activeTextEditor;
+                    bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri.fsPath);
                     triggerUpdateDecorations();
                 }
             });
