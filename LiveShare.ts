@@ -60,12 +60,16 @@ export interface LiveShare {
      */
     getSharedService(name: string): Promise<SharedServiceProxy>;
 
-    /** Converts a local absolute path to a vsls:// URI. */
-    convertLocalPathToSharedUri(localPath: string): Uri;
+    /**
+     * Converts a local file: URI to a vsls: URI.
+     */
+    convertLocalUriToShared(localUri: Uri): Uri;
 
-    /** Converts a vsls:// URI to a local absolute path.
-     *  (Returns null for guest role because files are remote.) */
-    convertSharedUriToLocalPath(sharedUri: Uri): string;
+    /**
+     * Converts a vsls: URI to a local file: URI.
+     * (Returns `null` for guest role because files are remote.)
+     */
+    convertSharedUriToLocal(sharedUri: Uri): Uri | null;
 }
 
 export enum Role {

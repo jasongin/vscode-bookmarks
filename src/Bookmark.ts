@@ -11,11 +11,11 @@ export const JUMP_BACKWARD = -1;
 export enum JUMP_DIRECTION { JUMP_FORWARD, JUMP_BACKWARD };
 
 export class Bookmark  {
-    public fsPath: string;
+    public uri: string;
     public bookmarks: number[];
 
-    constructor(fsPath: string) {
-        this.fsPath = fsPath;
+    constructor(uri: string) {
+        this.uri = uri;
         this.bookmarks = [];
     }
 
@@ -98,12 +98,12 @@ export class Bookmark  {
             }
 
             // file does not exist, returns empty
-            if (!fs.existsSync(this.fsPath)) {
+            if (!fs.existsSync(this.uri)) {
                 resolve(undefined);
                 return;
             }
 
-            let uriDocBookmark: vscode.Uri = vscode.Uri.file(this.fsPath);
+            let uriDocBookmark: vscode.Uri = vscode.Uri.parse(this.uri);
             vscode.workspace.openTextDocument(uriDocBookmark).then(doc => {
 
                 let items = [];
@@ -114,7 +114,7 @@ export class Bookmark  {
                     // check for 'invalidated' bookmarks, when its outside the document length
                     if (element <= doc.lineCount) {
                         let lineText = doc.lineAt(element - 1).text;
-                        let normalizedPath = doc.uri.fsPath;
+                        let normalizedPath = doc.uri.toString();
                         items.push({
                             label: element.toString(),
                             description: lineText,

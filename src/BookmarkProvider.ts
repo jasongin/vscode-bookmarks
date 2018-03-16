@@ -198,7 +198,7 @@ export class BookmarkProvider implements vscode.TreeDataProvider<BookmarkNode> {
                   if (element) {
                     for (let elementInside of element) {
 
-                      if (bb.fsPath === elementInside.detail) {
+                      if (bb.uri === elementInside.detail) {
                         books.push(
                           {
                             file: elementInside.detail,
@@ -211,7 +211,7 @@ export class BookmarkProvider implements vscode.TreeDataProvider<BookmarkNode> {
                   }
                 }
 
-                let itemPath = removeBasePathFrom(bb.fsPath);
+                let itemPath = removeBasePathFrom(bb.uri);
                 let bn: BookmarkNode = new BookmarkNode(itemPath, vscode.TreeItemCollapsibleState.Collapsed, BookmarkNodeKind.NODE_FILE, bb, books);
                 lll.push(bn);
                 this.tree.push(bn);
@@ -234,7 +234,7 @@ function removeBasePathFrom(aPath: string): string {
         
   let inWorkspace: vscode.WorkspaceFolder;
   for (const wf of vscode.workspace.workspaceFolders) {
-      if (aPath.indexOf(wf.uri.fsPath) === 0) {
+      if (aPath.indexOf(wf.uri.toString()) === 0) {
           inWorkspace = wf;
           break;
       }
@@ -242,9 +242,9 @@ function removeBasePathFrom(aPath: string): string {
 
   if (inWorkspace) {
     if (vscode.workspace.workspaceFolders.length === 1) {
-      return aPath.split(inWorkspace.uri.fsPath).pop().substr(1);
+      return aPath.split(inWorkspace.uri.toString()).pop().substr(1);
     } else {
-      return inWorkspace.name + path.sep + aPath.split(inWorkspace.uri.fsPath).pop().substr(1);
+      return inWorkspace.name + path.sep + aPath.split(inWorkspace.uri.toString()).pop().substr(1);
     }
   } else {
     return aPath;

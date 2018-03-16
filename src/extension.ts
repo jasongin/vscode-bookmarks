@@ -71,23 +71,23 @@ export async function activate(context: vscode.ExtensionContext) {
 
     if (activeEditor) {
         if (!didLoadBookmarks) {
-            bookmarks.add(activeEditor.document.uri.fsPath);
+            bookmarks.add(activeEditor.document.uri);
         }
         activeEditorCountLine = activeEditor.document.lineCount;
-        bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri.fsPath);
+        bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri);
         triggerUpdateDecorations();
     }
 	
     // new docs
     vscode.workspace.onDidOpenTextDocument(doc => {
-        bookmarks.add(doc.uri.fsPath);
+        bookmarks.add(doc.uri);
     });
 
     vscode.window.onDidChangeActiveTextEditor(editor => {
         activeEditor = editor;
         if (editor) {
             activeEditorCountLine = editor.document.lineCount;
-            bookmarks.activeBookmark = bookmarks.fromUri(editor.document.uri.fsPath);
+            bookmarks.activeBookmark = bookmarks.fromUri(editor.document.uri);
             triggerUpdateDecorations();
         }
     }, null, context.subscriptions);
@@ -388,8 +388,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // fix issue emptyAtLaunch
         if (!bookmarks.activeBookmark) {
-            bookmarks.add(vscode.window.activeTextEditor.document.uri.fsPath);
-            bookmarks.activeBookmark = bookmarks.fromUri(vscode.window.activeTextEditor.document.uri.fsPath);
+            bookmarks.add(vscode.window.activeTextEditor.document.uri);
+            bookmarks.activeBookmark = bookmarks.fromUri(vscode.window.activeTextEditor.document.uri);
         }
 
         let index = bookmarks.activeBookmark.bookmarks.indexOf(line);
@@ -442,7 +442,7 @@ export async function activate(context: vscode.ExtensionContext) {
                       }
                     
                       // same document?
-                      let activeDocument = Bookmarks.normalize(vscode.window.activeTextEditor.document.uri.fsPath);
+                      let activeDocument = vscode.window.activeTextEditor.document.uri.toString();
                       if (nextDocument.toString() === activeDocument) {
                         revealLine(bookmarks.activeBookmark.bookmarks[0]);
                       } else { 
@@ -488,7 +488,7 @@ export async function activate(context: vscode.ExtensionContext) {
                       }
                     
                       // same document?
-                      let activeDocument = Bookmarks.normalize(vscode.window.activeTextEditor.document.uri.fsPath);
+                      let activeDocument = vscode.window.activeTextEditor.document.uri.toString();
                       if (nextDocument.toString() === activeDocument) {
                         revealLine(bookmarks.activeBookmark.bookmarks[bookmarks.activeBookmark.bookmarks.length - 1]);
                       } else { 
@@ -848,10 +848,16 @@ export async function activate(context: vscode.ExtensionContext) {
         if (sharedBookmarksProxy) {
             return; // Don't save state locally as a guest.
         } else if (sharedBookmarksService) {
+            const sharedBookmarks = bookmarks.zip(false);
+            for (let element of sharedBookmarks.bookmarks) {
+                let uri = vscode.Uri.parse(element.uri);
+                element.uri = liveshare.convertLocalUriToShared(uri).toString();
+            }
+
             sharedBookmarksService.notify(
                 'bookmarksChanged',
                 {
-                    bookmarks: bookmarks.zip(true).bookmarks,
+                    bookmarks: sharedBookmarks.bookmarks,
                 });
         }
 
@@ -1109,15 +1115,21 @@ export async function activate(context: vscode.ExtensionContext) {
         if (role === vsls.Role.Host) {
             sharedBookmarksService = await liveshare.shareService('bookmarks');
             sharedBookmarksService.handleRequest('getBookmarks', (args: any[]) => {
-                return bookmarks.zip(true);
+                const sharedBookmarks = bookmarks.zip(false);
+                for (let element of sharedBookmarks.bookmarks) {
+                    element.uri = liveshare.convertLocalUriToShared(
+                        vscode.Uri.parse(element.uri)).toString();
+                }
+                return { bookmarks: sharedBookmarks };
             });
         } else if (role === vsls.Role.Guest) {
             sharedBookmarksProxy = await liveshare.getSharedService('bookmarks');
             sharedBookmarksProxy.handleNotification('bookmarksChanged', (args: any) => {
-                loadWorkspaceState(args);
+                const sharedBookmarks: Bookmarks = args;
+                loadWorkspaceState(sharedBookmarks);
 
                 let activeEditor = vscode.window.activeTextEditor;
-                bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri.fsPath);
+                bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri);
                 triggerUpdateDecorations();
             });
             sharedBookmarksProxy.onDidChangeIsServiceAvailable((isAvailable) => {
@@ -1125,7 +1137,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     loadWorkspaceState();
 
                     let activeEditor = vscode.window.activeTextEditor;
-                    bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri.fsPath);
+                    bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri);
                     triggerUpdateDecorations();
                 }
             });

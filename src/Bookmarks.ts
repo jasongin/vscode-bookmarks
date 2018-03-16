@@ -39,12 +39,6 @@ export class Bookmarks {
     private onDidUpdateBookmarkEmitter = new vscode.EventEmitter<BookmarkUpdated>();
     get onDidUpdateBookmark(): vscode.Event<BookmarkUpdated> { return this.onDidUpdateBookmarkEmitter.event; }
 
-    public static normalize(uri: string): string {
-        // a simple workaround for what appears to be a vscode.Uri bug
-        // (inconsistent fsPath values for the same document, ex. ///foo/x.cpp and /foo/x.cpp)
-        return uri.replace("///", "/");
-    }
-    
     public bookmarks: Bookmark[];
     public activeBookmark: Bookmark = undefined;
 
@@ -66,35 +60,34 @@ export class Bookmarks {
             let jsonBookmark = jsonBookmarks[idx];
             
             // each bookmark (line)
-            this.add(jsonBookmark.fsPath);
+            this.add(jsonBookmark.uri || (relativePath ?
+                jsonBookmark.fsPath : vscode.Uri.file(jsonBookmark.fsPath).toString()));
             for (let element of jsonBookmark.bookmarks) {
-                this.bookmarks[idx].bookmarks.push(element); 
+                this.bookmarks[idx].bookmarks.push(element);
             }
         }
 
         // it replaced $ROOTPATH$ for the rootPath itself 
         if (relativePath) {
+            const root = vscode.workspace.workspaceFolders[0].uri.toString();
             for (let element of this.bookmarks) {
-                element.fsPath = element.fsPath.replace("$ROOTPATH$", vscode.workspace.workspaceFolders[0].uri.fsPath);
+                element.uri = element.uri.replace("$ROOTPATH$", root);
             }
         }
     }
 
-    public fromUri(uri: string) {
-        uri = Bookmarks.normalize(uri);
+    public fromUri(uri: vscode.Uri) {
         for (let element of this.bookmarks) {
-            if (element.fsPath.endsWith(uri)) {
+            if (element.uri === uri.toString()) {
                 return element;
             }
         }
     }
 
-    public add(uri: string) {
-        uri = Bookmarks.normalize(uri);
-        
+    public add(uri: vscode.Uri) {
         let existing: Bookmark = this.fromUri(uri);
         if (typeof existing === "undefined") {
-            let bookmark = new Bookmark(uri);
+            let bookmark = new Bookmark(uri.toString());
             this.bookmarks.push(bookmark);
         }
     }
@@ -142,8 +135,8 @@ export class Bookmarks {
                         });
                 }                   
             } else {
-                if (fs.existsSync(currentBookmark.fsPath)) {
-                    resolve(currentBookmark.fsPath);
+                if (fs.existsSync(currentBookmark.uri)) {
+                    resolve(currentBookmark.uri);
                     return;
                 } else {
                     this.nextDocumentWithBookmarks(currentBookmark, direction)
@@ -206,8 +199,8 @@ export class Bookmarks {
         }
 
         for (let element of newBookmarks.bookmarks) {
-            element.fsPath = element.fsPath.replace(vscode.workspace.getWorkspaceFolder(
-                vscode.Uri.file(element.fsPath)).uri.fsPath, "$ROOTPATH$");
+            element.uri = element.uri.replace(vscode.workspace.getWorkspaceFolder(
+                vscode.Uri.parse(element.uri)).uri.toString(), "$ROOTPATH$");
         }
         return newBookmarks;
     }
