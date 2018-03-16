@@ -8,16 +8,26 @@ import { JUMP_BACKWARD, JUMP_DIRECTION, JUMP_FORWARD, NO_BOOKMARKS, NO_MORE_BOOK
 import {Bookmarks} from "./Bookmarks";
 
 import { BookmarkProvider } from "./BookmarkProvider";
+import * as vsls from "../LiveShare";
 
 // this method is called when vs code is activated
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   
     let bookmarks: Bookmarks;
     let activeEditorCountLine: number;
     let timeout: NodeJS.Timer;
 
+    let liveshare: vsls.LiveShare = null;
+    let sharedBookmarksService: vsls.SharedService;
+    let sharedBookmarksProxy: vsls.SharedServiceProxy;
+    let liveshareExtension = vscode.extensions.getExtension('ms-vsliveshare.vsliveshare');
+    if (liveshareExtension) {
+       liveshare = await liveshareExtension.activate();
+       liveshare.onDidChangeRole((role) => onLiveShareRoleChange(role));
+    }
+
     // load pre-saved bookmarks
-    let didLoadBookmarks: boolean = loadWorkspaceState();
+    let didLoadBookmarks: boolean = await loadWorkspaceState();
 
     // tree-view optional
     let canShowTreeView: boolean = vscode.workspace.getConfiguration("bookmarks").get("treeview.visible", true);
@@ -785,10 +795,19 @@ export function activate(context: vscode.ExtensionContext) {
         return saveBookmarksInProject;
     }
 
-    function loadWorkspaceState(): boolean {
+    async function loadWorkspaceState(state?: any): Promise<boolean> {
         let saveBookmarksInProject: boolean = canSaveBookmarksInProject();
 
         bookmarks = new Bookmarks("");
+
+        if (sharedBookmarksProxy) {
+            if (sharedBookmarksProxy.isServiceAvailable) {
+                bookmarks.loadFrom(await sharedBookmarksProxy.request('getBookmarks', []));
+                return true;
+            } else {
+                return false; // Don't load state locally as a guest.
+            }
+        }
 
         if (saveBookmarksInProject) {
             if (!vscode.workspace.workspaceFolders) {
@@ -816,6 +835,12 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     function saveWorkspaceState(): void {
+        if (sharedBookmarksProxy) {
+            return; // Don't save state locally as a guest.
+        } else if (sharedBookmarksService) {
+            sharedBookmarksService.notify('bookmarksChanged', bookmarks.zip(true));
+        }
+
         let saveBookmarksInProject: boolean = canSaveBookmarksInProject();
 
         if (saveBookmarksInProject) {
@@ -1061,6 +1086,29 @@ export function activate(context: vscode.ExtensionContext) {
             // return aPath.split(inWorkspace.uri.fsPath).pop();
         } else {
             return "$(file-directory) " + aPath;
+        }
+    }
+
+    async function onLiveShareRoleChange(role: vsls.Role) {
+        sharedBookmarksService = null;
+        sharedBookmarksProxy = null;
+        if (role === vsls.Role.Host) {
+            sharedBookmarksService = await liveshare.shareService('bookmarks');
+            sharedBookmarksService.handleRequest('getBookmarks', (args: any[]) => {
+                return bookmarks.zip(true);
+            });
+        } else if (role === vsls.Role.Guest) {
+            sharedBookmarksProxy = await liveshare.getSharedService('bookmarks');
+            sharedBookmarksProxy.handleNotification('bookmarksChanged', (args: any) => {
+                loadWorkspaceState(args);
+                triggerUpdateDecorations();
+            });
+            sharedBookmarksProxy.onDidChangeIsServiceAvailable((isAvailable) => {
+                if (isAvailable) {
+                    loadWorkspaceState();
+                    triggerUpdateDecorations();
+                }
+            });
         }
     }
 }
