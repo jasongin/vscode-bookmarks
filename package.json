@@ -44,7 +44,7 @@
                 {
                     "id": "bookmarksExplorer",
                     "name": "Bookmarks",
-					"when": "bookmarks.canShowTreeView"
+                    "when": "bookmarks.canShowTreeView"
                 }
             ]
         },
@@ -89,9 +89,9 @@
                 "command": "bookmarks.refresh",
                 "title": "Refresh",
                 "icon": {
-					"light": "images/refresh-light.svg",
-					"dark": "images/refresh-dark.svg"
-				}
+                    "light": "images/refresh-light.svg",
+                    "dark": "images/refresh-dark.svg"
+                }
             },
             {
                 "command": "bookmarks.clear",
@@ -154,22 +154,22 @@
                 }
             ],
             "view/title": [
-				{
-					"command": "bookmarks.refresh",
-					"when": "view == bookmarksExplorer",
-					"group": "navigation"
-				}
-			],
-			"view/item/context": [
-				{
-					"command": "bookmarks.clearFromFile",
-					"when": "view == bookmarksExplorer && viewItem == BookmarkNodeFile"
-				},
-				{
-					"command": "bookmarks.deleteBookmark",
-					"when": "view == bookmarksExplorer && viewItem == BookmarkNodeBookmark"
-				}
-			]
+                {
+                    "command": "bookmarks.refresh",
+                    "when": "view == bookmarksExplorer",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "bookmarks.clearFromFile",
+                    "when": "view == bookmarksExplorer && viewItem == BookmarkNodeFile"
+                },
+                {
+                    "command": "bookmarks.deleteBookmark",
+                    "when": "view == bookmarksExplorer && viewItem == BookmarkNodeBookmark"
+                }
+            ]
         },
         "configuration": {
             "type": "object",
@@ -189,12 +189,12 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Allow navigation look for bookmarks in all files in the project, instead of only the current"
-				},
-				"bookmarks.treeview.visible": {
-					"type": "boolean",
-					"default": true,
-					"description": "Should display the Treeview?"
-				}
+                },
+                "bookmarks.treeview.visible": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Should display the Treeview?"
+                }
             }
         },
         "keybindings": [
@@ -244,6 +244,7 @@
     "devDependencies": {
         "@types/node": "^6.0.40",
         "typescript": "^2.3.2",
-        "vscode": "^1.1.6"
-   }
+        "vscode": "^1.1.6",
+        "vsliveshare-api": "0.3.0-dev"
+    }
 }

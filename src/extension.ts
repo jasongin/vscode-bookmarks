@@ -8,7 +8,7 @@ import { JUMP_BACKWARD, JUMP_DIRECTION, JUMP_FORWARD, NO_BOOKMARKS, NO_MORE_BOOK
 import {Bookmarks} from "./Bookmarks";
 
 import { BookmarkProvider } from "./BookmarkProvider";
-import * as vsls from "../LiveShare";
+import * as vsls from "vsliveshare-api";
 
 // this method is called when vs code is activated
 export async function activate(context: vscode.ExtensionContext) {
@@ -17,14 +17,10 @@ export async function activate(context: vscode.ExtensionContext) {
     let activeEditorCountLine: number;
     let timeout: NodeJS.Timer;
 
-    let liveshare: vsls.LiveShare = null;
     let sharedBookmarksService: vsls.SharedService;
     let sharedBookmarksProxy: vsls.SharedServiceProxy;
-    let liveshareExtension = vscode.extensions.getExtension('ms-vsliveshare.vsliveshare');
-    if (liveshareExtension) {
-       liveshare = await liveshareExtension.activate();
-       liveshare.onDidChangeRole((role) => onLiveShareRoleChange(role));
-    }
+    const liveshare: vsls.LiveShare = await vsls.getApiAsync(context);
+    if (liveshare) await setupLiveShare();
 
     // load pre-saved bookmarks
     let didLoadBookmarks: boolean = await loadWorkspaceState();
@@ -810,7 +806,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return true;
         }
 
-        if (sharedBookmarksProxy) {
+        if (liveshare && liveshare.role === vsls.Role.Guest) {
             if (sharedBookmarksProxy.isServiceAvailable) {
                 bookmarks.loadFrom(await sharedBookmarksProxy.request('getBookmarks', []));
                 return true;
@@ -845,20 +841,20 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     function saveWorkspaceState(): void {
-        if (sharedBookmarksProxy) {
-            return; // Don't save state locally as a guest.
-        } else if (sharedBookmarksService) {
-            const sharedBookmarks = bookmarks.zip(false);
-            for (let element of sharedBookmarks.bookmarks) {
-                let uri = vscode.Uri.parse(element.uri);
-                element.uri = liveshare.convertLocalUriToShared(uri).toString();
-            }
+        if (liveshare) {
+            if (liveshare.role === vsls.Role.Guest) {
+                return; // Don't save state locally as a guest.
+            } else if (sharedBookmarksService.isServiceAvailable) {
+                const sharedBookmarks = bookmarks.zip(false);
+                for (let element of sharedBookmarks.bookmarks) {
+                    let uri = vscode.Uri.parse(element.uri);
+                    element.uri = liveshare.convertLocalUriToShared(uri).toString();
+                }
 
-            sharedBookmarksService.notify(
-                'bookmarksChanged',
-                {
-                    bookmarks: sharedBookmarks.bookmarks,
-                });
+                sharedBookmarksService.notify(
+                    'bookmarksChanged',
+                    { bookmarks: sharedBookmarks.bookmarks });
+            }
         }
 
         let saveBookmarksInProject: boolean = canSaveBookmarksInProject();
@@ -1109,38 +1105,34 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     }
 
-    async function onLiveShareRoleChange(role: vsls.Role) {
-        sharedBookmarksService = null;
-        sharedBookmarksProxy = null;
-        if (role === vsls.Role.Host) {
-            sharedBookmarksService = await liveshare.shareService('bookmarks');
-            sharedBookmarksService.handleRequest('getBookmarks', (args: any[]) => {
-                const sharedBookmarks = bookmarks.zip(false);
-                for (let element of sharedBookmarks.bookmarks) {
-                    element.uri = liveshare.convertLocalUriToShared(
-                        vscode.Uri.parse(element.uri)).toString();
-                }
-                return { bookmarks: sharedBookmarks };
-            });
-        } else if (role === vsls.Role.Guest) {
-            sharedBookmarksProxy = await liveshare.getSharedService('bookmarks');
-            sharedBookmarksProxy.handleNotification('bookmarksChanged', (args: any) => {
+    async function setupLiveShare() {
+        sharedBookmarksService = await liveshare.shareService('bookmarks');
+        sharedBookmarksService.handleRequest('getBookmarks', (args: any[]) => {
+            const sharedBookmarks = bookmarks.zip(false);
+            for (let element of sharedBookmarks.bookmarks) {
+                element.uri = liveshare.convertLocalUriToShared(
+                    vscode.Uri.parse(element.uri)).toString();
+            }
+            return { bookmarks: sharedBookmarks };
+        });
+
+        sharedBookmarksProxy = await liveshare.getSharedService('bookmarks');
+        sharedBookmarksProxy.handleNotification('bookmarksChanged', (args: any) => {
                 const sharedBookmarks: Bookmarks = args;
                 loadWorkspaceState(sharedBookmarks);
 
                 let activeEditor = vscode.window.activeTextEditor;
                 bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri);
                 triggerUpdateDecorations();
-            });
-            sharedBookmarksProxy.onDidChangeIsServiceAvailable((isAvailable) => {
-                if (isAvailable) {
-                    loadWorkspaceState();
+        });
+        sharedBookmarksProxy.onDidChangeIsServiceAvailable((isAvailable) => {
+            if (isAvailable) {
+                loadWorkspaceState();
 
-                    let activeEditor = vscode.window.activeTextEditor;
-                    bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri);
-                    triggerUpdateDecorations();
-                }
-            });
-        }
+                let activeEditor = vscode.window.activeTextEditor;
+                bookmarks.activeBookmark = bookmarks.fromUri(activeEditor.document.uri);
+                triggerUpdateDecorations();
+            }
+        });
     }
 }
