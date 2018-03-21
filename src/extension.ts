@@ -806,7 +806,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return true;
         }
 
-        if (liveshare && liveshare.role === vsls.Role.Guest) {
+        if (liveshare && liveshare.session.role === vsls.Role.Guest) {
             if (sharedBookmarksProxy.isServiceAvailable) {
                 bookmarks.loadFrom(await sharedBookmarksProxy.request('getBookmarks', []));
                 return true;
@@ -842,7 +842,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     function saveWorkspaceState(): void {
         if (liveshare) {
-            if (liveshare.role === vsls.Role.Guest) {
+            if (liveshare.session.role === vsls.Role.Guest) {
                 return; // Don't save state locally as a guest.
             } else if (sharedBookmarksService.isServiceAvailable) {
                 const sharedBookmarks = bookmarks.zip(false);

@@ -4,3 +4,4 @@ issues
 debug.log
 npm-debug.log
 .editorconfig
+*.vsix
