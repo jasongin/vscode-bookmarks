@@ -2,7 +2,7 @@
     "name": "Bookmarks",
     "displayName": "Bookmarks",
     "description": "Mark lines and jump to them",
-    "version": "0.19.0-dev",
+    "version": "0.33.0-dev",
     "publisher": "alefragnani",
     "galleryBanner": {
         "color": "#000000",
@@ -244,7 +244,9 @@
     "devDependencies": {
         "@types/node": "^6.0.40",
         "typescript": "^2.3.2",
-        "vscode": "^1.1.6",
-        "vsliveshare-api": "0.3.0-dev"
+        "vscode": "^1.1.6"
+    },
+    "dependencies": {
+        "vsls": "^0.3.426"
     }
 }

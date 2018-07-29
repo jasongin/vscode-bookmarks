@@ -8,7 +8,7 @@ import { JUMP_BACKWARD, JUMP_DIRECTION, JUMP_FORWARD, NO_BOOKMARKS, NO_MORE_BOOK
 import {Bookmarks} from "./Bookmarks";
 
 import { BookmarkProvider } from "./BookmarkProvider";
-import * as vsls from "vsliveshare-api";
+import * as vsls from "vsls/vscode";
 
 // this method is called when vs code is activated
 export async function activate(context: vscode.ExtensionContext) {
@@ -19,7 +19,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     let sharedBookmarksService: vsls.SharedService;
     let sharedBookmarksProxy: vsls.SharedServiceProxy;
-    const liveshare: vsls.LiveShare = await vsls.getApiAsync(context);
+    const liveshare: vsls.LiveShare = await vsls.getApi();
     if (liveshare) await setupLiveShare();
 
     // load pre-saved bookmarks
@@ -197,7 +197,7 @@ export async function activate(context: vscode.ExtensionContext) {
         if (!vscode.window.activeTextEditor) {
           vscode.window.showInformationMessage("Open a file first to clear bookmarks");
           return;
-        }      
+        }
       
         bookmarks.clear();
         saveWorkspaceState();
@@ -1107,17 +1107,17 @@ export async function activate(context: vscode.ExtensionContext) {
 
     async function setupLiveShare() {
         sharedBookmarksService = await liveshare.shareService('bookmarks');
-        sharedBookmarksService.handleRequest('getBookmarks', (args: any[]) => {
+        sharedBookmarksService.onRequest('getBookmarks', (args: any[]) => {
             const sharedBookmarks = bookmarks.zip(false);
             for (let element of sharedBookmarks.bookmarks) {
                 element.uri = liveshare.convertLocalUriToShared(
                     vscode.Uri.parse(element.uri)).toString();
             }
-            return { bookmarks: sharedBookmarks };
+            return { bookmarks: sharedBookmarks.bookmarks };
         });
 
         sharedBookmarksProxy = await liveshare.getSharedService('bookmarks');
-        sharedBookmarksProxy.handleNotification('bookmarksChanged', (args: any) => {
+        sharedBookmarksProxy.onNotify('bookmarksChanged', (args: any) => {
                 const sharedBookmarks: Bookmarks = args;
                 loadWorkspaceState(sharedBookmarks);
 
