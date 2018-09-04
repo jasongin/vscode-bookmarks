@@ -1107,6 +1107,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
     async function setupLiveShare() {
         sharedBookmarksService = await liveshare.shareService('bookmarks');
+        if (!sharedBookmarksService) {
+            // Live Share messaging is not permitted.
+            return;
+        }
+
         sharedBookmarksService.onRequest('getBookmarks', (args: any[]) => {
             const sharedBookmarks = bookmarks.zip(false);
             for (let element of sharedBookmarks.bookmarks) {
